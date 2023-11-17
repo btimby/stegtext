@@ -1,3 +1,7 @@
+import _debug from 'debug';
+
+const debug = _debug('stegman');
+
 // https://www.irongeek.com/homoglyph-attack-generator.php
 const FORWARD = {
     ' ': ['\u2000', '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007', '\u2008', '\u3000'], //SPACE
@@ -45,15 +49,17 @@ const FORWARD = {
 const ALPHABET = Object.keys(FORWARD);
 const REVERSE = {};
 for (const [k, v] of Object.entries(FORWARD)) {
+    REVERSE[k] = k;
     for (const h of v) {
         REVERSE[h] = k;
     }
 }
-const BITS = [
-    [0b111, 0b110, 0b101, 0b100, 0b011, 0b010, 0b001, 0b000],
-    [0b10, 0b11, 0b01, 0b00],
-    [0, 1],
-]
+// TODO: ordering is wrong, need to fix...
+const BITS = {
+    1: [0b0, 0b1],
+    2: [0b10, 0b11, 0b01, 0b00,],
+    3: [0b111, 0b110, 0b101, 0b100, 0b011, 0b010, 0b001, 0b000],
+}
 
 /*
 Encoding method
@@ -115,19 +121,33 @@ function reverse(s) {
     return s.split('').reverse().join('');
 }
 
+function hex(i) {
+    return i.toString(2).padStart(8, '0');
+}
+
 function hexDump(s, len) {
     let col = 0, row = 0, binary = [], number = [];
 
     for (let i = 0; i < len; i++) {
-        binary.push(reverse(s[i].toString(2).padStart(8, '0')));
+        binary.push(reverse(hex(s[i])));
         number.push(s[i]);
         if (col++ === 5 || i === len - 1) {
-            console.debug(`${row * 5}: ${binary.join(' ')}, ${number.join(' ')}`);
+            debug(`${row * 5}: ${binary.join(' ')}, ${number.join(' ')}`);
             row++;
             binary = [];
             number = [];
         }
     }
+}
+
+function mask(start, end) {
+    let mask = 0;
+
+    for (let j = start; j < end; j++) {
+        mask ^= 2 ** j;
+    }
+
+    return mask;
 }
 
 function to6Bit(s) {
@@ -142,9 +162,12 @@ function to6Bit(s) {
         }
 
         const [index, bit] = divmod(i * 6, 8);
-        const shifted = alpha << bit;
-        buffer[index] = buffer[index] | shifted;
-        buffer[index + 1] = shifted >> 8;
+        const value = alpha << bit;
+        buffer[index] |= value;
+        if (bit > 2) {
+            // Set next array position with remaining bits.
+            buffer[index + 1] = value >> 8;
+        }
     }
 
     hexDump(buffer, len);
@@ -152,29 +175,32 @@ function to6Bit(s) {
     return buffer;
 }
 
-function to8Bit(s) {
+function to8Bit(array) {
+    let s = '', i = 0;
 
-}
-
-function base2ToBaseN(bits, c) {
-    const possible = [c];
-    possible.push(...FORWARD[c]);
-    const limit = possible.length;
-
-    for (let i = 2; i >= 0; i--) {
-        if (limit > 2 ** i -1) {
-            continue;
+    while (true) {
+        const [index, bit] = divmod(i++ * 6, 8);
+        if (index === array.length -1 && bit > 2) {
+            // Not enough data for another char.
+            break;
         }
-        let value = bits | (2 ** i * 2 - 1);
-        let index = BITS[i].indexOf(value);
-        if (index === -1 || index > 2 ** i - limit) {
-            continue;
+        // Mask the bits we need and shift to LSB.
+        let value = array[index] & mask(bit, Math.min(8, bit + 6)) >> bit;
+        const have = 8 - bit;
+        if (have < 6) {
+            // We need more bits, so mask them, shift them and OR them.
+            value |= (array[index + 1] & mask(0, 6 - have)) << have;
         }
-
-        // Found it.
-        return [i, possible[index - 2 ** (i - 1)]];
+        const alpha = ALPHABET[value]
+        if (alpha === undefined) {
+            throw new Error(`Invalid char code ${value}, max ${ALPHABET.length - 1}`);
+        }
+        s += alpha;
     }
+
+    return s;
 }
+
 
 function encodeHeader(encrypted) {
     /*
@@ -197,72 +223,6 @@ function encodeHeader(encrypted) {
    return value;
 }
 
-function hide(buffer, cover) {
-    let bytePos = 0, bitPos = 0;
-    let value = buffer[bytePos];
-
-    for (let i = 0; i < cover.length; i++) {
-        const c = cover[i];
-        const alpha = ALPHABET.indexOf(c);
-        if (alpha === -1) {
-            continue;
-        }
-
-        const [bitsStored, substitute] = base2ToBaseN(alpha, value);
-        cover[i] = substitute;
-        value >>= bitsStored;
-        bitPos += bitsStored;
-        if (bitPos >= 8) {
-            bitPos = 0;
-            value = buffer[++bytePos];
-        }
-    }
-}
-
-function baseNtoBase2(c, homoglyph) {
-    const possible = [c];
-    possible.push(...FORWARD[c]);
-    const index = possible.indexOf(homoglyph);
-    return BITS[index];
-}
-
-function seekN(m, length, start) {
-    let prev = '', bufferPos = 0, bitPos = 0, value = 0;
-    const buffer = new Uint8Array(length);
-
-    for (let i = 0; i < m.length && bufferPos < length; i++) {
-        const c = m[i];
-        const alpha = REVERSE[c];
-        if (!alpha) {
-            continue;
-        }
-        if (alpha === prev) {
-            continue;
-        }
-        prev = alpha;
-        const bits = baseNtoBase2(alpha, c);
-
-        for (let b = 0; b < bits.length; b++) {
-            if (bits[b] === 1) {
-                value = value | 2 ** bitPos;
-            }
-            if (bitPos++ === 8) {
-                // Only retain bytes after start.
-                if (bufferPos >= start) {
-                    buffer[bufferPos++] = value;
-                }
-                bitPos = 0;
-                value = 0;
-            }
-            if (bufferPos == length) {
-                break;
-            }
-        }
-    }
-
-    return buffer;
-}
-
 function decodeHeader(buffer) {
     let value = buffer[0];
     const header = {
@@ -273,26 +233,153 @@ function decodeHeader(buffer) {
     return header;
 }
 
-function seek(m) {
-    const header = decodeHeader(seekN(m, 1));
-    return seekN(m, header.length, 1);
+function base2ToBaseN(bits, bit, c) {
+    const possible = [c];
+    try {
+        possible.push(...FORWARD[c]);
+    } catch (e) {
+        return [0, null];
+    }
+
+    // Try to store 3 bits, then 2, then 1.
+    for (let i = 3; i > 0; i--) {
+        // i == number of bits we are searching.
+        let value = (bits & mask(bit, bit + i)) >> bit;
+        debug('base2ToBaseN: Searching for %i bit solutions for %s', i, hex(value));
+        let index = BITS[i].indexOf(value);
+        if (index === -1) {
+            // Try to hide less bits.
+            debug('base2ToBaseN: No solution');
+            continue;
+        }
+        for (let ii = i - 1; ii > 0; ii--) {
+            // Extend index by all smaller bit sequences.
+            index += 2 ** ii;
+        }
+        if (index > possible.length - 1) {
+            debug('base2ToBaseN: Not enough permutations to cover solution');
+            continue;
+        }
+        debug('base2ToBaseN: Found solution at index %i', index);
+
+        const permutation = possible[index];
+
+        // Found bit sequence
+        return [i, permutation];
+    }
+}
+function baseNToBase2(c) {
+    debug('baseNToBase2: c: %s(%i)', c, c.charCodeAt(0));
+    const alpha = REVERSE[c];
+    if (alpha === undefined) {
+        return [0, null];
+    }
+    debug('baseNToBase2: alpha: %s(%i)', alpha, alpha.charCodeAt(0));
+    const possible = [alpha];
+    possible.push(...FORWARD[alpha]);
+    let index = possible.indexOf(c);
+    debug('baseNToBase2: Permutation %i of %s', index, alpha);
+
+    for (let i = 1; i <= 3; i++) {
+        debug('baseNToBase2: Searching for %i bit solution', i);
+        if (BITS[i].length - 1 < index) {
+            index -= BITS[i].length;
+            continue;
+        }
+
+        debug('baseNToBase2: Found solution at %i of %i bits', index, i);
+        return [i, BITS[i][index]];
+    }
+
+    return [0, null];
 }
 
-function steganographize(key, message, cover) {
+function hideByte(byte, cover, cursor) {
+    let hidden = 0;
+    // Consume as many chars in cover as are necessary to hide the
+    // given byte.
+
+    while (hidden < 8) {
+        const orig = cover[cursor];
+        const [num, swap] = base2ToBaseN(byte, 8 - hidden, orig);
+        if (num) {
+            debug('hideByte: hid %i bit(s)', num);
+            debug('hideByte: Swapping %s->%s', cover[cursor], swap);
+            cover[cursor] = swap;
+        }
+        cursor++;
+        hidden += num;
+    }
+
+    return cursor;
+}
+
+function hide(buffer, cover) {
+    let cursor = 0;
+
+    cover = cover.split('');
+    for (let i = 0; i < buffer.length; i++) {
+        cursor = hideByte(buffer[i], cover, cursor)
+    }
+
+    return cover.join('');
+}
+
+function seek(m) {
+    const values = [];
+    let i = 0, pos = 0, temp = 0;
+
+    while (true) {
+        const c = m[i];
+        let [num, bits] = baseNToBase2(c);
+        debug('seek: Extracted %i bits from char %s', num, c);
+        if (num > 0) {
+            bits <<= pos;
+            debug('seek: ORing bits %s into %s', hex(bits), hex(temp));
+            temp |= bits;
+            debug('seek: temp is now %s', hex(temp));
+            pos += num;
+        }
+
+        i++;
+        if (pos >= 8) {
+            const value = temp & 0x00ff;
+            debug('seek: Pushing value %s to result', hex(value));
+            pos -= 8;
+            values.push(value);
+            temp >>= 8;
+            debug('seek: temp shifted by 8, is now: %s', hex(temp));
+        } else if (i === m.length) {
+            debug('seek: Pushing value %s to result', hex(temp));
+            values.push(temp);
+            break;
+        }
+    }
+
+    return values;
+}
+
+export function steganographize(key, message, cover) {
     const encodedMessage = to6Bit(message);
     const encryptedMessage = encrypt(key, encodedMessage);
     return hide(encryptedMessage, cover);
 }
 
-function unsteganographize(stego) {
+export function unsteganographize(stego) {
     const encryptedMessage = seek(stego);
     const encodeddMessage = decrypt(encryptedMessage);
     return to8Bit(encodedMessage);
 }
 
-export {
+export const _test = (process.env.NODE_ENV === 'test') ? {
     encrypt,
     decrypt,
-    steganographize,
-    unsteganographize,
-};
+    divmod,
+    reverse,
+    to6Bit,
+    to8Bit,
+    base2ToBaseN,
+    baseNToBase2,
+    hide,
+    seek,
+} : void 0;

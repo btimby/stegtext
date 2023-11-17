@@ -1,0 +1,36 @@
+{
+  "//": [
+    "mocha --parallel used below to work around bug.",
+    "https://github.com/mochajs/mocha/issues/4374#issuecomment-666620281"
+  ],
+  "name": "stegman",
+  "version": "1.0.0",
+  "description": "Steganography",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_ENV=test mocha",
+    "watch": "NODE_ENV=test mocha --watch --parallel -R min"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/btimby/stegman.git"
+  },
+  "keywords": [
+    "Steganography",
+    "Privacy"
+  ],
+  "author": "Ben Timby <btimby@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/btimby/stegman/issues"
+  },
+  "homepage": "https://github.com/btimby/stegman#readme",
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "rewire": "^7.0.0"
+  },
+  "dependencies": {
+    "debug": "^4.3.4"
+  }
+}
