@@ -49,6 +49,24 @@ describe('stegtext', () => {
         assert.deepEqual(cover.slice(16, 24), ['\u0555', '0', '0', '0', '0', '\u0555', '0', '\u0555'])
     });
 
+    it('can hide bytes in a cover message', () => {
+        const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message. It provides cover.');
+        assert.equal(cover, 'Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
+    });
+
+    it('throws an error when hiding too much', () => {
+        try {
+            hide([0b11011010, 0b11111111, 0b00000000], 'short');
+            assert.fail('Error expected');
+        } catch (e) {
+            // Error should provide information about necessary cover
+            // message length;
+            assert.equal(e.hidden, 0);
+            assert.equal(e.needed, 4);
+            assert.equal(e.message, 'cover message too short need space for 4 more bytes');
+        }
+    });
+
     it('can seek a byte in cover message', () => {
         assert.deepEqual(seek('\u05550000000000000'), [0b00000000]);
         assert.deepEqual(seek('\u05550000000\u05550000000'), [0b00000001])
@@ -59,11 +77,6 @@ describe('stegtext', () => {
                               [0b10111011]);
         assert.deepEqual(seek('\u05550000000\u0555\u0555\u0555\u0555\u0555\u0555\u0555\u0555'),
                               [0b11111111]);
-    });
-
-    it('can hide bytes in a cover message', () => {
-        const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message. It provides cover.');
-        assert.equal(cover, 'Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
     });
 
     it('can seek bytes from a cover message', () => {

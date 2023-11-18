@@ -308,7 +308,9 @@ function hideByte(byte, cover, cursor) {
             debug('hideByte: Swapping %s->%s', cover[cursor], swap);
             cover[cursor] = swap;
         }
-        cursor++;
+        if (cursor++ > cover.length) {
+            throw new Error('cover message too short');
+        }
         hidden += num;
     }
 
@@ -322,7 +324,17 @@ function hide(buffer, cover) {
     // TODO: more complex header, for now just number of chars.
     buffer.splice(0, 0, buffer.length);
     for (let i = 0; i < buffer.length; i++) {
-        cursor = hideByte(buffer[i], chars, cursor)
+        try {
+            cursor = hideByte(buffer[i], chars, cursor);
+        } catch (e) {
+            if (!e.message.endsWith('too short')) {
+                throw e;
+            }
+            e.hidden = i;
+            e.needed = buffer.length;
+            e.message += ` need space for ${buffer.length - i} more bytes`;
+            throw e;
+        }
     }
 
     return chars.join('');
