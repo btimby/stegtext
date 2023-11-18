@@ -1,6 +1,6 @@
 import _debug from 'debug';
 
-const debug = _debug('stegman');
+const debug = _debug('stegtext');
 
 // https://www.irongeek.com/homoglyph-attack-generator.php
 const FORWARD = {
@@ -144,7 +144,7 @@ function mask(start, end) {
     let mask = 0;
 
     for (let j = start; j < end; j++) {
-        mask ^= 2 ** j;
+        mask ^= 1 << j;
     }
 
     return mask;
@@ -252,8 +252,8 @@ function base2ToBaseN(bits, bit, c) {
             debug('base2ToBaseN: No solution');
             continue;
         }
+        // Extend index by all smaller bit sequences.
         for (let ii = i - 1; ii > 0; ii--) {
-            // Extend index by all smaller bit sequences.
             index += 2 ** ii;
         }
         if (index > possible.length - 1) {
@@ -301,7 +301,7 @@ function hideByte(byte, cover, cursor) {
 
     while (hidden < 8) {
         const orig = cover[cursor];
-        const [num, swap] = base2ToBaseN(byte, 8 - hidden, orig);
+        const [num, swap] = base2ToBaseN(byte, hidden, orig);
         if (num) {
             debug('hideByte: hid %i bit(s)', num);
             debug('hideByte: Swapping %s->%s', cover[cursor], swap);
@@ -349,9 +349,12 @@ function seek(m) {
             values.push(value);
             temp >>= 8;
             debug('seek: temp shifted by 8, is now: %s', hex(temp));
-        } else if (i === m.length) {
+        }
+        if (i === m.length) {
             debug('seek: Pushing value %s to result', hex(temp));
-            values.push(temp);
+            if (pos > 0) {
+                values.push(temp);
+            }
             break;
         }
     }
@@ -380,6 +383,7 @@ export const _test = (process.env.NODE_ENV === 'test') ? {
     to8Bit,
     base2ToBaseN,
     baseNToBase2,
+    hideByte,
     hide,
     seek,
 } : void 0;

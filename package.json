@@ -3,7 +3,7 @@
     "mocha --parallel used below to work around bug.",
     "https://github.com/mochajs/mocha/issues/4374#issuecomment-666620281"
   ],
-  "name": "stegman",
+  "name": "stegtext",
   "version": "1.0.0",
   "description": "Steganography",
   "main": "src/index.js",
