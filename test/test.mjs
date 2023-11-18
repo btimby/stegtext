@@ -7,6 +7,7 @@ const {
 
 
 describe('stegtext', () => {
+    // utility functions.
     it('can perform divmod', () => {
         assert.deepEqual(divmod(12, 10), [1, 2]);
         assert.deepEqual(divmod(2, 10), [0, 2])
@@ -17,6 +18,7 @@ describe('stegtext', () => {
         assert.deepEqual(reverse('barn yard'), 'dray nrab');
     });
 
+    // 6 to 8 bit conversion.
     it('should be able convert 8->6 bit', () => {
         assert.deepEqual(pack('a'), [15]);
         assert.deepEqual(pack('aa'), [207, 3]);
@@ -27,6 +29,7 @@ describe('stegtext', () => {
         assert.deepEqual(unpack([207, 3]), 'aa');
     });
 
+    // support functions.
     it('can encode bits as unicode homoglyph swaps', () => {
         // Should store first two bits as 4rd permutation of 'o'
         assert.deepEqual(base2ToBaseN(0b1111, 0, 'o'), [2, '\uff4f']);
@@ -53,24 +56,6 @@ describe('stegtext', () => {
         assert.deepEqual(cover.slice(16, 24), ['\u0555', '0', '0', '0', '0', '\u0555', '0', '\u0555'])
     });
 
-    it('can hide bytes in a cover message', () => {
-        const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message. It provides cover.');
-        assert.equal(cover, 'Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
-    });
-
-    it('throws an error when hiding too much', () => {
-        try {
-            hide([0b11011010, 0b11111111, 0b00000000], 'short');
-            assert.fail('Error expected');
-        } catch (e) {
-            // Error should provide information about necessary cover
-            // message length;
-            assert.equal(e.hidden, 0);
-            assert.equal(e.needed, 4);
-            assert.equal(e.message, 'cover message too short need space for 4 more bytes');
-        }
-    });
-
     it('can seek a byte in cover message', () => {
         assert.deepEqual(seekN('000000'), [0b00000000]);
         assert.deepEqual(seekN('\u05550000000'), [0b00000001])
@@ -83,8 +68,38 @@ describe('stegtext', () => {
                               [0b11111111]);
     });
 
+    // hide and seek
+    it('can hide bytes in a cover message', () => {
+        const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message. It provides cover.');
+        assert.equal(cover, 'Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
+    });
+
+    it('throws when hiding too much', () => {
+        try {
+            hide([0b11011010, 0b11111111, 0b00000000], 'short');
+            assert.fail('Error expected');
+        } catch (e) {
+            // Error should provide information about necessary cover
+            // message length;
+            assert.equal(e.hidden, 0);
+            assert.equal(e.needed, 4);
+            assert.equal(e.message, 'cover message too short need space for 4 more bytes');
+        }
+    });
+
     it('can seek bytes from a cover message', () => {
-        const message = seek('Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
+        const message = seek('Tһіs is ａ сοｖеｒ ⅿessage.');
         assert.deepEqual(message, [0b11011010, 0b11111111, 0b00000000]);
+    });
+
+    it('throws if stego message has been truncated', () => {
+        try {
+            seek('Tһіs is ａ ');
+            assert.fail('Error expected');
+        } catch (e) {
+            // Error provides what has been seeked vs. needed.
+            assert.equal(e.seeked, 2);
+            assert.equal(e.needed, 3);
+        }
     });
 });

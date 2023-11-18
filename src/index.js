@@ -324,7 +324,10 @@ export function seek(m) {
     const bytes = seekN(m);
 
     if (bytes[0] > bytes.length) {
-        throw new Error('message truncated');
+        const e = new Error(`message truncated looking for ${bytes[0] - bytes.length} more bytes`);
+        e.seeked = bytes.length;
+        e.needed = bytes[0];
+        throw e;
     }
 
     // Trim result to length specified by first byte.
