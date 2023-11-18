@@ -71,35 +71,51 @@ describe('stegtext', () => {
     // hide and seek
     it('can hide bytes in a cover message', () => {
         const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message. It provides cover.');
-        assert.equal(cover, 'Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
+        assert.equal(cover, 'Tһⅰs iѕ a coⅴｅｒ ⅿеѕѕаɡе܂ It provides cover.');
     });
 
     it('throws when hiding too much', () => {
         try {
             hide([0b11011010, 0b11111111, 0b00000000], 'short');
-            assert.fail('Error expected');
         } catch (e) {
             // Error should provide information about necessary cover
             // message length;
             assert.equal(e.hidden, 0);
-            assert.equal(e.needed, 4);
-            assert.equal(e.message, 'cover message too short need space for 4 more bytes');
+            assert.equal(e.needed, 5);
+            assert.equal(e.message, 'cover message too short need space for 5 more bytes');
+            return;
         }
+        assert.fail('Error expected');
     });
 
     it('can seek bytes from a cover message', () => {
-        const message = seek('Tһіs is ａ сοｖеｒ ⅿessage.');
+        const message = seek('Tһⅰs iѕ a coⅴｅｒ ⅿеѕѕаɡе܂ It provides cover.');
         assert.deepEqual(message, [0b11011010, 0b11111111, 0b00000000]);
     });
 
     it('throws if stego message has been truncated', () => {
         try {
-            seek('Tһіs is ａ ');
-            assert.fail('Error expected');
+            seek('Tһⅰs iѕ a');
         } catch (e) {
             // Error provides what has been seeked vs. needed.
-            assert.equal(e.seeked, 2);
+            assert(e.message.startsWith('message truncated') === true, 'wrong error message');
+            assert.equal(e.seeked, 1);
             assert.equal(e.needed, 3);
+            return;
         }
+        assert.fail('Error expected');
+    });
+
+    it('throws if stego message has been corrupted', () => {
+        try {
+            seek('Tһⅰs iѕ a coⅴｅr ⅿеѕѕаɡе܂ It provides cover.');
+        } catch (e) {
+            // Error provides what has been seeked vs. needed.
+            assert(e.message.startsWith('message corrupted') === true, 'wrong error message');
+            assert.equal(e.expected, 69);
+            assert.equal(e.calculated, 10);
+            return;
+        }
+        assert.fail('Error expected');
     });
 });

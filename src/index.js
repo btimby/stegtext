@@ -1,3 +1,4 @@
+import crc8 from 'crc/calculators/crc8';
 import _debug from 'debug';
 
 const debug = _debug('stegtext');
@@ -261,8 +262,9 @@ export function hide(buffer, cover) {
     let cursor = 0;
 
     const chars = cover.split('');
-    // TODO: more complex header, for now just number of chars.
     buffer.splice(0, 0, buffer.length);
+    const crc = crc8(new Int8Array(buffer));
+    buffer.splice(0, 0, crc);
     for (let i = 0; i < buffer.length; i++) {
         try {
             cursor = hideByte(buffer[i], chars, cursor);
@@ -321,17 +323,25 @@ function seekN(m) {
 }
 
 export function seek(m) {
-    const bytes = seekN(m);
+    let [crc, ...bytes] = seekN(m);
+    const length = bytes[0];
 
-    if (bytes[0] > bytes.length) {
-        const e = new Error(`message truncated looking for ${bytes[0] - bytes.length} more bytes`);
+    if (length > bytes.length - 1) {
+        const e = new Error(`message truncated looking for ${length - bytes.length} more bytes`);
         e.seeked = bytes.length;
-        e.needed = bytes[0];
+        e.needed = length;
+        throw e;
+    }
+    bytes = bytes.slice(0, length + 1)
+    const check = crc8(new Int8Array(bytes));
+    if (check !== crc) {
+        const e = new Error(`message corrupted got ${check.toString(2)} but expected ${crc.toString(2)}`);
+        e.expected = crc;
+        e.calculated = check;
         throw e;
     }
 
-    // Trim result to length specified by first byte.
-    return bytes.slice(1, bytes[0] + 1);
+    return bytes.slice(1);
 }
 
 // When testing, export some additional symbols.
