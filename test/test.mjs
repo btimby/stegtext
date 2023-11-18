@@ -39,36 +39,36 @@ describe('stegtext', () => {
 
     it('can hide a byte in cover message', () => {
         // Use a specially crafted cover message so that we can hide
-        // on bit per char.
-        const cover = ['0', '0', '0', '0', '0', '0', '0', '0',
-                       '0', '0', '0', '0', '0', '0', '0', '0',
-                       '0', '0', '0', '0', '0', '0', '0', '0'];
-        debugger;
+        // one bit per char.
+        const cover = '000000000000000000000000'.split('');
         assert.equal(hideByte(0b00000001, cover, 0), 8);
         assert.deepEqual(cover.slice(0, 8), ['\u0555', '0', '0', '0', '0', '0', '0', '0'])
+        assert.equal(hideByte(0b10000000, cover, 8), 16);
+        assert.deepEqual(cover.slice(8, 16), ['0', '0', '0', '0', '0', '0', '0', '\u0555'])
+        assert.equal(hideByte(0b10100001, cover, 16), 24);
+        assert.deepEqual(cover.slice(16, 24), ['\u0555', '0', '0', '0', '0', '\u0555', '0', '\u0555'])
     });
 
     it('can seek a byte in cover message', () => {
-        assert.deepEqual(seek('0000000'), [0b00000000]);
-        assert.deepEqual(seek('\u05550000000'), [0b00000001])
-        assert.deepEqual(seek('0000000\u0555'), [0b10000000])
-        assert.deepEqual(seek('0\u05550\u05550\u05550\u0555'),
+        assert.deepEqual(seek('\u05550000000000000'), [0b00000000]);
+        assert.deepEqual(seek('\u05550000000\u05550000000'), [0b00000001])
+        assert.deepEqual(seek('\u055500000000000000\u0555'), [0b10000000])
+        assert.deepEqual(seek('\u055500000000\u05550\u05550\u05550\u0555'),
                               [0b10101010]);
-        assert.deepEqual(seek('\u0555\u05550\u0555\u0555\u05550\u0555'),
+        assert.deepEqual(seek('\u05550000000\u0555\u05550\u0555\u0555\u05550\u0555'),
                               [0b10111011]);
-        assert.deepEqual(seek('\u0555\u0555\u0555\u0555\u0555\u0555\u0555\u0555'), [0b11111111]);
+        assert.deepEqual(seek('\u05550000000\u0555\u0555\u0555\u0555\u0555\u0555\u0555\u0555'),
+                              [0b11111111]);
     });
 
     it('can hide bytes in a cover message', () => {
-        const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message');
-        //                    0 1     1     110   10   0 11
-        //                    | |     |     |     |    | |
-        assert.equal(cover, 'Tｈⅰѕ ｉѕ а cover message');
+        const cover = hide([0b11011010, 0b11111111, 0b00000000], 'This is a cover message. It provides cover.');
+        assert.equal(cover, 'Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
     });
 
     it('can seek bytes from a cover message', () => {
         debugger;
-        const message = seek('Tｈⅰѕ ｉѕ а cover message');
+        const message = seek('Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
         assert.deepEqual(message, [0b11011010, 0b11111111, 0b00000000]);
     });
 });

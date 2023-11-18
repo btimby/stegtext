@@ -241,8 +241,9 @@ function base2ToBaseN(bits, bit, c) {
         return [0, null];
     }
 
-    // Try to store 3 bits, then 2, then 1.
-    for (let i = 3; i > 0; i--) {
+    // Try to store 3 bits, then 2, then 1. Cap at number of bits
+    // to hide (8 - bit position).
+    for (let i = Math.min(3, 8 - bit); i > 0; i--) {
         // i == number of bits we are searching.
         let value = (bits & mask(bit, bit + i)) >> bit;
         debug('base2ToBaseN: Searching for %i bit solutions for %s', i, hex(value));
@@ -317,12 +318,14 @@ function hideByte(byte, cover, cursor) {
 function hide(buffer, cover) {
     let cursor = 0;
 
-    cover = cover.split('');
+    const chars = cover.split('');
+    // TODO: more complex header, for now just number of chars.
+    buffer.splice(0, 0, buffer.length);
     for (let i = 0; i < buffer.length; i++) {
-        cursor = hideByte(buffer[i], cover, cursor)
+        cursor = hideByte(buffer[i], chars, cursor)
     }
 
-    return cover.join('');
+    return chars.join('');
 }
 
 function seek(m) {
@@ -349,6 +352,9 @@ function seek(m) {
             values.push(value);
             temp >>= 8;
             debug('seek: temp shifted by 8, is now: %s', hex(temp));
+            if (values[0] === values.length - 2) {
+                break;
+            }
         }
         if (i === m.length) {
             debug('seek: Pushing value %s to result', hex(temp));
@@ -359,7 +365,7 @@ function seek(m) {
         }
     }
 
-    return values;
+    return values.slice(1, values[0] + 1);
 }
 
 export function steganographize(key, message, cover) {
