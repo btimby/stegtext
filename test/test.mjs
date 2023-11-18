@@ -19,14 +19,20 @@ describe('stegtext', () => {
     });
 
     // 6 to 8 bit conversion.
-    it('should be able convert 8->6 bit', () => {
+    it('can convert 8->6 bit', () => {
         assert.deepEqual(pack('a'), [15]);
         assert.deepEqual(pack('aa'), [207, 3]);
     });
 
-    it('should be able to convert 6->8 bit', () => {
+    it('can convert 6->8 bit', () => {
         assert.deepEqual(unpack([15]), 'a');
         assert.deepEqual(unpack([207, 3]), 'aa');
+    });
+
+    it('throws when packing non-alphabet char', () => {
+        assert.throws(() => {
+            pack('T');
+        });
     });
 
     // support functions.
