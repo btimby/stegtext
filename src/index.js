@@ -280,7 +280,7 @@ export function hide(buffer, cover) {
     return chars.join('');
 }
 
-export function seek(m) {
+function seekN(m) {
     const values = [];
     let i = 0, pos = 0, temp = 0;
 
@@ -298,7 +298,7 @@ export function seek(m) {
 
         i++;
         if (pos >= 8) {
-            const value = temp & 0x00ff;
+            const value = temp & 0xff;
             debug('seek: Pushing value %s to result', hex(value));
             pos -= 8;
             values.push(value);
@@ -317,13 +317,26 @@ export function seek(m) {
         }
     }
 
-    return values.slice(1, values[0] + 1);
+    return values;
 }
 
-export const _test = (process.env.NODE_ENV === 'test') ? {
+export function seek(m) {
+    const bytes = seekN(m);
+
+    if (bytes[0] > bytes.length) {
+        throw new Error('message truncated');
+    }
+
+    // Trim result to length specified by first byte.
+    return bytes.slice(1, bytes[0] + 1);
+}
+
+// When testing, export some additional symbols.
+export const _internals = (process.env.NODE_ENV === 'test') ? {
     divmod,
     reverse,
     base2ToBaseN,
     baseNToBase2,
     hideByte,
+    seekN,
 } : void 0;

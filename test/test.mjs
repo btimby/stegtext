@@ -1,7 +1,9 @@
 import assert from 'assert';
-import { _test, pack, unpack, hide, seek } from "../src/index.js";
+import { _internals, pack, unpack, hide, seek } from "../src/index.js";
 
-const { divmod, reverse, base2ToBaseN, baseNToBase2, hideByte } = _test;
+const {
+    divmod, reverse, base2ToBaseN, baseNToBase2, hideByte, seekN,
+} = _internals;
 
 
 describe('stegtext', () => {
@@ -39,7 +41,7 @@ describe('stegtext', () => {
         assert.deepEqual(baseNToBase2('\u3000'), [3, 0b011]);
     });
 
-    it('can hide a byte in cover message', () => {
+    it('can hide a byte in a cover message', () => {
         // Use a specially crafted cover message so that we can hide
         // one bit per char.
         const cover = '000000000000000000000000'.split('');
@@ -70,19 +72,18 @@ describe('stegtext', () => {
     });
 
     it('can seek a byte in cover message', () => {
-        assert.deepEqual(seek('\u05550000000000000'), [0b00000000]);
-        assert.deepEqual(seek('\u05550000000\u05550000000'), [0b00000001])
-        assert.deepEqual(seek('\u055500000000000000\u0555'), [0b10000000])
-        assert.deepEqual(seek('\u055500000000\u05550\u05550\u05550\u0555'),
+        assert.deepEqual(seekN('000000'), [0b00000000]);
+        assert.deepEqual(seekN('\u05550000000'), [0b00000001])
+        assert.deepEqual(seekN('0000000\u0555'), [0b10000000])
+        assert.deepEqual(seekN('0\u05550\u05550\u05550\u0555'),
                               [0b10101010]);
-        assert.deepEqual(seek('\u05550000000\u0555\u05550\u0555\u0555\u05550\u0555'),
+        assert.deepEqual(seekN('\u0555\u05550\u0555\u0555\u05550\u0555'),
                               [0b10111011]);
-        assert.deepEqual(seek('\u05550000000\u0555\u0555\u0555\u0555\u0555\u0555\u0555\u0555'),
+        assert.deepEqual(seekN('\u0555\u0555\u0555\u0555\u0555\u0555\u0555\u0555'),
                               [0b11111111]);
     });
 
     it('can seek bytes from a cover message', () => {
-        debugger;
         const message = seek('Tһіs is ａ сοｖеｒ ⅿessage. It provides cover.');
         assert.deepEqual(message, [0b11011010, 0b11111111, 0b00000000]);
     });
