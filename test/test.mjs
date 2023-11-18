@@ -32,7 +32,7 @@ describe('stegtext', () => {
     it('throws when packing non-alphabet char', () => {
         assert.throws(() => {
             pack('T');
-        });
+        }, /invalid char code.*/);
     });
 
     // support functions.

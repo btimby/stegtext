@@ -133,7 +133,7 @@ export function pack(s) {
     for (let i = 0; i < s.length; i++) {
         const alpha = ALPHABET.indexOf(s[i]);
         if (alpha === -1) {
-            throw new Error(`Invalid char, only "${ALPHABET}" are supported`);
+            throw new Error(`invalid char code, only "${ALPHABET}" are supported`);
         }
 
         const [index, bit] = divmod(i * 6, 8);
@@ -166,7 +166,7 @@ export function unpack(array) {
         }
         const alpha = ALPHABET[value]
         if (alpha === undefined) {
-            throw new Error(`Invalid char code ${value}, max ${ALPHABET.length - 1}`);
+            throw new Error(`invalid char code ${value}, max ${ALPHABET.length - 1}`);
         }
         s += alpha;
     }
