@@ -1,18 +1,23 @@
 import assert from 'assert';
 import { _test, pack, unpack, hide, seek } from "../src/index.js";
 
-const { divmod, base2ToBaseN, baseNToBase2, hideByte } = _test;
+const { divmod, reverse, base2ToBaseN, baseNToBase2, hideByte } = _test;
 
 
 describe('stegtext', () => {
-    it ('can perform divmod', () => {
+    it('can perform divmod', () => {
         assert.deepEqual(divmod(12, 10), [1, 2]);
         assert.deepEqual(divmod(2, 10), [0, 2])
     });
 
+    it('can reverse a string', () => {
+        assert.deepEqual(reverse('foo'), 'oof');
+        assert.deepEqual(reverse('barn yard'), 'dray nrab');
+    });
+
     it('should be able convert 8->6 bit', () => {
-        assert.deepEqual(pack('a'), new Uint8Array([15]));
-        assert.deepEqual(pack('aa'), new Uint8Array([207, 3]));
+        assert.deepEqual(pack('a'), [15]);
+        assert.deepEqual(pack('aa'), [207, 3]);
     });
 
     it('should be able to convert 6->8 bit', () => {

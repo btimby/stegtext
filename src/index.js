@@ -127,8 +127,7 @@ function mask(start, end) {
 
 export function pack(s) {
     // Calculate length of 8-bit buffer necessary to contain our message.
-    const len = Math.ceil(s.length * 6 / 8);
-    const buffer = new Uint8Array(len);
+    const buffer = [];
 
     for (let i = 0; i < s.length; i++) {
         const alpha = ALPHABET.indexOf(s[i]);
@@ -138,9 +137,9 @@ export function pack(s) {
 
         const [index, bit] = divmod(i * 6, 8);
         const value = alpha << bit;
-        buffer[index] |= value;
+        buffer[index] |= value & 0xff;
         if (bit > 2) {
-            // Set next array position with remaining bits.
+            // Overflow to next item
             buffer[index + 1] = value >> 8;
         }
     }
