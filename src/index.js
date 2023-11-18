@@ -103,16 +103,6 @@ method id, encryption key id, error correction code and finally a message
 length.
 */
 
-function encrypt(key, message) {
-    // NOOP
-    return message;
-}
-
-function decrypt(key, cipher) {
-    // NOOP
-    return cipher;
-}
-
 function divmod(x, y) {
     return [Math.floor(x / y), x % y];
 }
@@ -125,21 +115,6 @@ function hex(i) {
     return i.toString(2).padStart(8, '0');
 }
 
-function hexDump(s, len) {
-    let col = 0, row = 0, binary = [], number = [];
-
-    for (let i = 0; i < len; i++) {
-        binary.push(reverse(hex(s[i])));
-        number.push(s[i]);
-        if (col++ === 5 || i === len - 1) {
-            debug(`${row * 5}: ${binary.join(' ')}, ${number.join(' ')}`);
-            row++;
-            binary = [];
-            number = [];
-        }
-    }
-}
-
 function mask(start, end) {
     let mask = 0;
 
@@ -150,7 +125,7 @@ function mask(start, end) {
     return mask;
 }
 
-function to6Bit(s) {
+export function pack(s) {
     // Calculate length of 8-bit buffer necessary to contain our message.
     const len = Math.ceil(s.length * 6 / 8);
     const buffer = new Uint8Array(len);
@@ -170,12 +145,10 @@ function to6Bit(s) {
         }
     }
 
-    hexDump(buffer, len);
-
     return buffer;
 }
 
-function to8Bit(array) {
+export function unpack(array) {
     let s = '', i = 0;
 
     while (true) {
@@ -199,38 +172,6 @@ function to8Bit(array) {
     }
 
     return s;
-}
-
-
-function encodeHeader(encrypted) {
-    /*
-    header = {
-        magic: 0110,    // 4 bits
-        version: 01,    // 2 bits
-        encryption: 01, // 2 bits
-    }
-    */
-   const header = {
-        magic: 0b0110,
-        version: 0b1,
-        encryption: (encrypted) ? 0b1 : 0b0,
-   };
-   let value = header.magic;
-   value >>= 4;
-   value |= header.version;
-   value >>= 2;
-   value |= header.encryption;
-   return value;
-}
-
-function decodeHeader(buffer) {
-    let value = buffer[0];
-    const header = {
-        encrypted: value & 0b11,
-        version: (value << 2) && 0b11,
-        magic: (value << 6),
-    };
-    return header;
 }
 
 function base2ToBaseN(bits, bit, c) {
@@ -317,7 +258,7 @@ function hideByte(byte, cover, cursor) {
     return cursor;
 }
 
-function hide(buffer, cover) {
+export function hide(buffer, cover) {
     let cursor = 0;
 
     const chars = cover.split('');
@@ -340,7 +281,7 @@ function hide(buffer, cover) {
     return chars.join('');
 }
 
-function seek(m) {
+export function seek(m) {
     const values = [];
     let i = 0, pos = 0, temp = 0;
 
@@ -380,28 +321,10 @@ function seek(m) {
     return values.slice(1, values[0] + 1);
 }
 
-export function steganographize(key, message, cover) {
-    const encodedMessage = to6Bit(message);
-    const encryptedMessage = encrypt(key, encodedMessage);
-    return hide(encryptedMessage, cover);
-}
-
-export function unsteganographize(stego) {
-    const encryptedMessage = seek(stego);
-    const encodeddMessage = decrypt(encryptedMessage);
-    return to8Bit(encodedMessage);
-}
-
 export const _test = (process.env.NODE_ENV === 'test') ? {
-    encrypt,
-    decrypt,
     divmod,
     reverse,
-    to6Bit,
-    to8Bit,
     base2ToBaseN,
     baseNToBase2,
     hideByte,
-    hide,
-    seek,
 } : void 0;

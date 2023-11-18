@@ -1,10 +1,7 @@
 import assert from 'assert';
-import { _test, steganographize } from "../src/index.js";
+import { _test, pack, unpack, hide, seek } from "../src/index.js";
 
-const {
-    to6Bit, to8Bit, divmod, base2ToBaseN, baseNToBase2, hide, hideByte,
-    seek,
-} = _test;
+const { divmod, base2ToBaseN, baseNToBase2, hideByte } = _test;
 
 
 describe('stegtext', () => {
@@ -14,13 +11,13 @@ describe('stegtext', () => {
     });
 
     it('should be able convert 8->6 bit', () => {
-        assert.deepEqual(to6Bit('a'), new Uint8Array([15]));
-        assert.deepEqual(to6Bit('aa'), new Uint8Array([207, 3]));
+        assert.deepEqual(pack('a'), new Uint8Array([15]));
+        assert.deepEqual(pack('aa'), new Uint8Array([207, 3]));
     });
 
     it('should be able to convert 6->8 bit', () => {
-        assert.deepEqual(to8Bit([15]), 'a');
-        assert.deepEqual(to8Bit([207, 3]), 'aa');
+        assert.deepEqual(unpack([15]), 'a');
+        assert.deepEqual(unpack([207, 3]), 'aa');
     });
 
     it('can encode bits as unicode homoglyph swaps', () => {
