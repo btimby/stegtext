@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/btimby/stegman.git"
+    "url": "git+ssh://git@github.com/btimby/stegtext.git"
   },
   "keywords": [
     "Steganography",
@@ -23,9 +23,9 @@
   "author": "Ben Timby <btimby@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/btimby/stegman/issues"
+    "url": "https://github.com/btimby/stegtext/issues"
   },
-  "homepage": "https://github.com/btimby/stegman#readme",
+  "homepage": "https://github.com/btimby/stegtext#readme",
   "devDependencies": {
     "mocha": "^10.2.0",
     "rewire": "^7.0.0"

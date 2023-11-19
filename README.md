@@ -1,4 +1,4 @@
-# stegman
+# stegtext
 Steganographic method that hides text inside of text. The hidden message is limited to a small alphabet so that only 6 bits are used per character. This reduces the size of the hidden message, which means a smaller cover message is necessary. The cover message can be any text using ASCII characters.
 
 ## theory
