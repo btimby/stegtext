@@ -5,7 +5,6 @@ name: Node.js Package
 
 on:
   push:
-    tags: v*
 
 jobs:
   build:
@@ -20,6 +19,7 @@ jobs:
 
   publish-npm:
     needs: build
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
