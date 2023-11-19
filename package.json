@@ -4,7 +4,7 @@
     "https://github.com/mochajs/mocha/issues/4374#issuecomment-666620281"
   ],
   "name": "stegtext",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Steganography",
   "main": "src/index.js",
   "type": "module",
